@@ -1,5 +1,7 @@
 <RCC>
     <qresource prefix="/">
         <file>main.qml</file>
+        <file>TCpChart.qml</file>
+        <file>T1Dialog.qml</file>
     </qresource>
 </RCC>

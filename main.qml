@@ -1,110 +1,185 @@
 import QtQuick 2.7
 import QtQuick.Controls 2.0
-import QtQuick.Layouts 1.0
+import QtQuick.Layouts 1.1
 import QtQuick.Dialogs 1.2
 import QtCharts 2.2
 
 import FP 1.0
 
 ApplicationWindow {
+    id: appWindow
+
     visible: true
-    width: 640
-    height: 480
+    width: 1024
+    height: 768
     title: qsTr("FP - Proj1")
 
-    Model
-    {
+    property var t1List: model.t1List
+
+    Model {
         id: model
 
-        source: "../Proj1/data/entalpia.csv"
+        source: "../FP1/data/entalpia.csv"
     }
 
-
-    Flow
-    {
-        //        x: 0
-        //        y: 0
+    RowLayout {
         anchors.fill: parent
         anchors.margins: 20
-        spacing: 10
+        spacing: 5
 
-        Column
-        {
-            spacing: 5
+        Component {
+            id: t1Delegate
 
-            Button
-            {
-                text: "Select file..."
-                onClicked: fileDialog.open()
-            }
+            Row {
+                padding: 5
+                spacing: 5
 
-            Button
-            {
-                text: "Parse"
-                onClicked: model.parseCSV()
-            }
+                TextField
+                {
+                    implicitWidth: 100
+                    placeholderText: qsTr("Temperatura")
+                    validator: DoubleValidator {}
+                    text: temperature
 
-            Button
-            {
-                text: "Integrate"
-                onClicked: model.integrate()
+                    onAccepted: t1List.setTemperature(index, Number.fromLocaleString(Qt.locale(), text))
+                }
+
+                TextField
+                {
+                    implicitWidth: 100
+                    placeholderText: qsTr("Entalpia")
+                    validator: DoubleValidator {}
+                    text: enthalpy
+
+                    onAccepted: t1List.setEnthalpy(index, Number.fromLocaleString(Qt.locale(), text))
+                }
+
+//                Label {
+//                    text: temperature
+//                }
+
+//                Label {
+//                    text: temperature
+//                }
+
+//                Button {
+//                    text: "Edytuj..."
+//                }
+
+                Button {
+                    text: qsTr("Usuń")
+                    onClicked: t1List.remove(index)
+                }
             }
         }
 
-        Column
+        ColumnLayout
         {
-            spacing: 5
+            Layout.fillHeight: true
 
-            Label
-            {
-                text: "File: " + model.source
+            ListView {
+                id: t1View
+
+                Layout.fillHeight: true
+                implicitWidth: 350
+                clip: true
+
+                model: t1List
+                delegate: t1Delegate
+
+                header: Row {
+                    padding: 5
+                    spacing: 5
+
+                    Label { width: 100; text: qsTr("Temperatura [K]") }
+                    Label { width: 100; text: qsTr("Entalpia [J]") }
+                }
             }
 
-            Label
+            Button
             {
-                text: "integral: " + model.integral
+                id: addTransitionButton
+
+                text: "Dodaj przemianę..."
+                onClicked: t1List.append()
             }
         }
 
-        ChartView
-        {
-            width: 400
-            height: 400
+        ColumnLayout {
+            spacing: 5
 
-            ValueAxis
-            {
-                id: xAxis
+            Label {
+                Layout.alignment: Qt.AlignHCenter
+
+                text: "ΔH [J/mol]: " + model.integral
+                font.pixelSize: 18
             }
 
-            ValueAxis
-            {
-                id: yAxis
+            TCpChart {
+                Layout.fillHeight: true
+                Layout.fillWidth: true
+
+                implicitWidth: 400
+                implicitHeight: 400
+
+                model: model
+                label: model.source
             }
 
-            LineSeries
+            RowLayout
             {
-                id: mainSeries
-                axisX: xAxis
-                axisY: yAxis
-            }
+                spacing: 5
 
-            Connections
-            {
-                target: model
-                onCpChanged: {
-                    model.updateSeries(mainSeries)
-                    xAxis.min = mainSeries.at(0).x
-                    xAxis.max = mainSeries.at(mainSeries.count - 1).x
-                    var yMin = Infinity;
-                    var yMax = 0.0;
-                    for (var i = 0; i < mainSeries.count; i++) {
-                        yMin = Math.min(yMin, mainSeries.at(i).y)
-                        yMax = Math.max(yMax, mainSeries.at(i).y)
-                    }
-                    if (yMin < yMax) {
-                        yAxis.min = yMin
-                        yAxis.max = yMax
-                    }
+                Button {
+                    text: "Wybierz plik..."
+                    onClicked: fileDialog.open()
+                }
+
+                Button {
+                    text: "Parsuj"
+                    onClicked: model.parseCSV()
+                }
+
+                Label
+                {
+                    Layout.alignment: Qt.AlignVCenter
+                    text: "Przedział całkowania:"
+                }
+
+                TextField
+                {
+                    implicitWidth: 60
+                    text: Math.round(tSlider.first.value * 10) / 10
+                    focus: true
+                    validator: DoubleValidator { bottom: tSlider.from; top: tSlider.second.value }
+
+                    onAccepted: tSlider.first.value = Number.fromLocaleString(Qt.locale(), text)
+                }
+
+                RangeSlider
+                {
+                    id: tSlider
+
+                    from: model.minT
+                    to: model.maxT
+
+                    onFromChanged: first.value = from
+                    onToChanged: second.value = to
+                }
+
+                TextField
+                {
+                    implicitWidth: 60
+                    text: Math.round(tSlider.second.value * 10) / 10
+                    focus: true
+                    validator: DoubleValidator { bottom: tSlider.first.value; top: tSlider.to }
+
+                    onAccepted: tSlider.second.value = Number.fromLocaleString(Qt.locale(), text)
+                }
+
+                Button {
+                    text: "Całkuj"
+                    onClicked: model.integrate(tSlider.first.value, tSlider.second.value)
                 }
             }
         }
@@ -116,35 +191,15 @@ ApplicationWindow {
         title: "Please choose a file"
         folder: shortcuts.home
 
-        onAccepted: model.source = fileDialog.fileUrl
+        onAccepted: model.setSourceAsUrl(fileDialog.fileUrl)
 
         onRejected: console.log("Canceled")
     }
 
-    //    SwipeView {
-    //        id: swipeView
-    //        anchors.fill: parent
-    //        currentIndex: tabBar.currentIndex
-
-    //        Page1 {
-    //        }
-
-    //        Page {
-    //            Label {
-    //                text: qsTr("Second page")
-    //                anchors.centerIn: parent
-    //            }
-    //        }
-    //    }
-
-    //    footer: TabBar {
-    //        id: tabBar
-    //        currentIndex: swipeView.currentIndex
-    //        TabButton {
-    //            text: qsTr("First")
-    //        }
-    //        TabButton {
-    //            text: qsTr("Second")
-    //        }
-    //    }
+    function createT1Dialog()
+    {
+        var component = Qt.createComponent("T1Dialog.qml");
+        var dialog = component.createObject(appWindow, {"parent": appWindow});
+        dialog.open()
+    }
 }
