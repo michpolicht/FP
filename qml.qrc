@@ -2,6 +2,6 @@
     <qresource prefix="/">
         <file>main.qml</file>
         <file>TCpChart.qml</file>
-        <file>T1Dialog.qml</file>
+        <file>TransitionDialog.qml</file>
     </qresource>
 </RCC>

@@ -1,6 +1,6 @@
-#include "T1ListModel.hpp"
+#include "TransitionModel.hpp"
 
-T1ListModel::T1ListModel(QObject * parent):
+TransitionModel::TransitionModel(QObject * parent):
 	QAbstractListModel(parent),
 	m_roleNames(QAbstractListModel::roleNames())
 {
@@ -8,45 +8,45 @@ T1ListModel::T1ListModel(QObject * parent):
 	m_roleNames[static_cast<int>(Role::Enthalpy)] = "enthalpy";
 }
 
-int T1ListModel::rowCount(const QModelIndex & parent) const
+int TransitionModel::rowCount(const QModelIndex & parent) const
 {
 	if (parent.isValid())
 		return 0;
 	return m_list.count();
 }
 
-QVariant T1ListModel::data(const QModelIndex & index, int role) const
+QVariant TransitionModel::data(const QModelIndex & index, int role) const
 {
 	if (!index.isValid())
 		return QVariant();
 	else if (role == static_cast<int>(Role::Temperature))
-		return m_list.at(index.row()).temperature;
+		return m_list.at(index.row()).t1;
 	else if (role == static_cast<int>(Role::Enthalpy))
-		return m_list.at(index.row()).enthalpy;
+		return m_list.at(index.row()).h;
 
 	 return QVariant();
 }
 
-QHash<int, QByteArray> T1ListModel::roleNames() const
+QHash<int, QByteArray> TransitionModel::roleNames() const
 {
 	return m_roleNames;
 }
 
-const T1 & T1ListModel::at(int index) const
+const Transition & TransitionModel::at(int index) const
 {
 	Q_ASSERT(index >= 0 && index < m_list.count());
 
 	return m_list.at(index);
 }
 
-void T1ListModel::append()
+void TransitionModel::append()
 {
 	beginInsertRows(QModelIndex(), m_list.count(), m_list.count());
-	m_list.append(T1{0.0, 0.0});
+	m_list.append(Transition{0.0, 0.0, 0.0});
 	endInsertRows();
 }
 
-void T1ListModel::remove(int index)
+void TransitionModel::remove(int index)
 {
 	if (index >= m_list.count()) {
 		qWarning(QString("remove(%1) - index is out of range").arg(index).toLocal8Bit().constData());
@@ -58,21 +58,29 @@ void T1ListModel::remove(int index)
 	endRemoveRows();
 }
 
-
-void T1ListModel::setTemperature(int index, qreal temperature)
+void TransitionModel::setT1(int index, qreal temperature)
 {
 	Q_ASSERT(index >= 0 && index < m_list.count());
 
-	m_list[index].temperature = temperature;
+	m_list[index].t1 = temperature;
 
 	emit dataChanged(QAbstractListModel::index(index, 0), QAbstractListModel::index(index, 0));
 }
 
-void T1ListModel::setEnthalpy(int index, qreal enthalpy)
+void TransitionModel::setT2(int index, qreal temperature)
 {
 	Q_ASSERT(index >= 0 && index < m_list.count());
 
-	m_list[index].enthalpy = enthalpy;
+	m_list[index].t2 = temperature;
+
+	emit dataChanged(QAbstractListModel::index(index, 0), QAbstractListModel::index(index, 0));
+}
+
+void TransitionModel::setH(int index, qreal enthalpy)
+{
+	Q_ASSERT(index >= 0 && index < m_list.count());
+
+	m_list[index].h = enthalpy;
 
 	emit dataChanged(QAbstractListModel::index(index, 0), QAbstractListModel::index(index, 0));
 }

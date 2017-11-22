@@ -1,7 +1,7 @@
 #ifndef FILEREADER_HPP
 #define FILEREADER_HPP
 
-#include "T1ListModel.hpp"
+#include "TransitionModel.hpp"
 
 #include <QObject>
 #include <QString>
@@ -25,7 +25,7 @@ class Model:
 		Q_PROPERTY(qreal maxT READ maxT NOTIFY maxTChanged)
 		Q_PROPERTY(qreal minCp READ minCp NOTIFY minCpChanged)
 		Q_PROPERTY(qreal maxCp READ maxCp NOTIFY maxCpChanged)
-		Q_PROPERTY(QAbstractListModel * t1List READ t1List CONSTANT)
+		Q_PROPERTY(QAbstractListModel * transitionList READ transitionList CONSTANT)
 
 		explicit Model(QObject * parent = 0);
 
@@ -47,7 +47,7 @@ class Model:
 
 		qreal maxCp() const;
 
-		QAbstractListModel * t1List() const;
+		QAbstractListModel * transitionList() const;
 
 	public slots:
 		void setSourceAsUrl(const QString & url);
@@ -63,7 +63,7 @@ class Model:
 
 		void findMinMaxCp();
 
-		qreal integrateT1(qreal from, qreal to);
+		qreal integrateTransition(qreal from, qreal to);
 
 	signals:
 		void sourceChanged();
@@ -91,7 +91,7 @@ class Model:
 		qreal m_maxT;
 		qreal m_minCp;
 		qreal m_maxCp;
-		std::unique_ptr<T1ListModel> m_t1List;
+		std::unique_ptr<TransitionModel> m_transitionList;
 };
 
 #endif // FILEREADER_HPP

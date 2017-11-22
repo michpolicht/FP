@@ -1,18 +1,18 @@
-#ifndef TRANSITIONLISTMODEL_HPP
-#define TRANSITIONLISTMODEL_HPP
+#ifndef TRANSITIONMODEL_HPP
+#define TRANSITIONMODEL_HPP
 
-#include "T1.hpp"
+#include "Transition.hpp"
 
 #include <QAbstractListModel>
 #include <QList>
 
-class T1ListModel:
+class TransitionModel:
 	public QAbstractListModel
 {
 	Q_OBJECT
 
 	public:
-		T1ListModel(QObject * parent = 0);
+		TransitionModel(QObject * parent = 0);
 
 		int rowCount(const QModelIndex & parent) const override;
 
@@ -20,15 +20,17 @@ class T1ListModel:
 
 		QHash<int, QByteArray> roleNames() const override;
 
-		Q_INVOKABLE const T1 & at(int index) const;
+		Q_INVOKABLE const Transition & at(int index) const;
 
 		Q_INVOKABLE void append();
 
 		Q_INVOKABLE void remove(int index);
 
-		Q_INVOKABLE void setTemperature(int index, qreal temperature);
+		Q_INVOKABLE void setT1(int index, qreal temperature);
 
-		Q_INVOKABLE void setEnthalpy(int index, qreal enthalpy);
+		Q_INVOKABLE void setT2(int index, qreal temperature);
+
+		Q_INVOKABLE void setH(int index, qreal enthalpy);
 
 //		Qt::ItemFlags flags(const QModelIndex & index) const override;
 
@@ -51,7 +53,7 @@ class T1ListModel:
 		};
 
 	private:
-		QList<T1> m_list;
+		QList<Transition> m_list;
 		QHash<int, QByteArray> m_roleNames;
 };
 

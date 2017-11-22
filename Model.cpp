@@ -14,7 +14,7 @@ Model::Model(QObject * parent):
 	m_maxT(0.0),
 	m_minCp(0.0),
 	m_maxCp(0.0),
-	m_t1List(new T1ListModel)
+	m_transitionList(new TransitionModel)
 {
 //	connect(this, & Model::sourceChanged, this, & Model::parseCSV);
 }
@@ -67,9 +67,9 @@ qreal Model::maxCp() const
 	return m_maxCp;
 }
 
-QAbstractListModel * Model::t1List() const
+QAbstractListModel * Model::transitionList() const
 {
-	return m_t1List.get();
+	return m_transitionList.get();
 }
 
 void Model::setSourceAsUrl(const QString & url)
@@ -130,7 +130,7 @@ void Model::integrate(qreal from, qreal to)
 		m_integral += 0.5 * (m_t.at(i + 1) - m_t.at(i)) * (m_cp.at(i) + m_cp.at(i + 1));
 	}
 
-	m_integral += integrateT1(from, to);
+	m_integral += integrateTransition(from, to);
 
 	emit integralChanged();
 }
@@ -182,14 +182,14 @@ void Model::findMinMaxCp()
 	}
 }
 
-qreal Model::integrateT1(qreal from, qreal to)
+qreal Model::integrateTransition(qreal from, qreal to)
 {
 	qreal result = 0.0;
 
-	for (int i = 0; i < m_t1List->rowCount(QModelIndex()); i++) {
-		T1 t1 = m_t1List->at(i);
-		if (t1.temperature >= from && t1.temperature <= to) {
-			result += t1.enthalpy;
+	for (int i = 0; i < m_transitionList->rowCount(QModelIndex()); i++) {
+		Transition trans = m_transitionList->at(i);
+		if (trans.t1 >= from && trans.t1 <= to) {
+			result += trans.h;
 		}
 	}
 

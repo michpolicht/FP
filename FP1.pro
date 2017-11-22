@@ -4,12 +4,12 @@ CONFIG += c++11
 
 HEADERS += \
     Model.hpp \
-    T1.hpp \
-    T1ListModel.hpp
+    TransitionModel.hpp \
+    Transition.hpp
 
 SOURCES += main.cpp \
     Model.cpp \
-    T1ListModel.cpp
+    TransitionModel.cpp
 
 RESOURCES += qml.qrc
 

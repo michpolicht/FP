@@ -12,14 +12,22 @@ ApplicationWindow {
     visible: true
     width: 1024
     height: 768
-    title: qsTr("FP - Proj1")
+    title: qsTr("FP Projekt")
 
-    property var t1List: model.t1List
+    property var transitionList: model.transitionList
 
     Model {
         id: model
 
         source: "../FP1/data/entalpia.csv"
+    }
+
+    MouseArea {
+        id: mouseArea
+        anchors.fill: parent
+        hoverEnabled: true
+
+        onClicked: console.log("dupa: " + mouseX)
     }
 
     RowLayout {
@@ -41,7 +49,7 @@ ApplicationWindow {
                     validator: DoubleValidator {}
                     text: temperature
 
-                    onAccepted: t1List.setTemperature(index, Number.fromLocaleString(Qt.locale(), text))
+                    onAccepted: transitionList.setT1(index, Number.fromLocaleString(Qt.locale(), text))
                 }
 
                 TextField
@@ -51,7 +59,7 @@ ApplicationWindow {
                     validator: DoubleValidator {}
                     text: enthalpy
 
-                    onAccepted: t1List.setEnthalpy(index, Number.fromLocaleString(Qt.locale(), text))
+                    onAccepted: transitionList.setH(index, Number.fromLocaleString(Qt.locale(), text))
                 }
 
 //                Label {
@@ -62,13 +70,14 @@ ApplicationWindow {
 //                    text: temperature
 //                }
 
-//                Button {
-//                    text: "Edytuj..."
-//                }
+                Button {
+                    text: qsTr("Edytuj...")
+                    onClicked: createTransitionDialog(index)
+                }
 
                 Button {
                     text: qsTr("Usuń")
-                    onClicked: t1List.remove(index)
+                    onClicked: transitionList.remove(index)
                 }
             }
         }
@@ -84,7 +93,7 @@ ApplicationWindow {
                 implicitWidth: 350
                 clip: true
 
-                model: t1List
+                model: transitionList
                 delegate: t1Delegate
 
                 header: Row {
@@ -101,7 +110,7 @@ ApplicationWindow {
                 id: addTransitionButton
 
                 text: "Dodaj przemianę..."
-                onClicked: t1List.append()
+                onClicked: transitionList.append()
             }
         }
 
@@ -196,10 +205,16 @@ ApplicationWindow {
         onRejected: console.log("Canceled")
     }
 
-    function createT1Dialog()
+    function createTransitionDialog(index)
     {
-        var component = Qt.createComponent("T1Dialog.qml");
-        var dialog = component.createObject(appWindow, {"parent": appWindow});
+        console.log(mouseArea.mouseX)
+        var component = Qt.createComponent("TransitionDialog.qml");
+        var dialog = component.createObject(appWindow, {"parent": appWindow,
+                                                "x": mouseArea.mouseX,
+                                                "y": mouseArea.mouseY,
+                                                "transitionList": transitionList,
+                                                "index" : index,
+                                                "transitionList": transitionList});
         dialog.open()
     }
 }
