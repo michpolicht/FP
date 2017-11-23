@@ -94,8 +94,6 @@ class Model:
 
 		qreal integrateTransitions(qreal from, qreal to);
 
-		void insertTransitionToCumulative(const Transition & transition, QList<qreal> & t, QList<qreal> & cp);
-
 	private:
 		QString m_source;
 		QList<qreal> m_t;

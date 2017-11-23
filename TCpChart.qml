@@ -55,7 +55,7 @@ ChartView
 
 		axisX: xAxis
 		axisY: yAxis
-		name: root.label
+//		name: root.label
 		color: "blue"
 		markerSize: 2.0
 		borderWidth: 0.0
@@ -67,7 +67,7 @@ ChartView
 
 		axisX: xAxis
 		axisY: yAxis
-		name: "Kumulacyjny"
+//		name: "Kumulacyjny"
 		color: "red"
 		markerSize: 2.0
 		borderWidth: 0.0

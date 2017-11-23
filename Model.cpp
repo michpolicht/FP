@@ -300,19 +300,3 @@ qreal Model::integrateTransitions(qreal from, qreal to)
 
 	return result;
 }
-
-void Model::insertTransitionToCumulative(const Transition & transition, QList<qreal> & t, QList<qreal> & cp)
-{
-//	QList<qreal> * transitionT = transition->t();
-//	QList<qreal> * transitionCp = transition->cp();
-
-//	int startIndex = 0;
-//	while (startIndex < t.size() && t.at(startIndex) < transition->temperatureBegin())
-//		startIndex++;
-
-//	for (int i = 0; i < t.size(); i++) {
-//		t.at(i)
-//	}
-
-//	int startIndex = transition->temperatureBegin();
-}

@@ -23,6 +23,53 @@ ApplicationWindow {
 	property int listViewItemWidth: 100
 	property int listViewItemSpacing: 5
 
+	header: ToolBar {
+		RowLayout {
+			spacing: 20
+			anchors.fill: parent
+
+			ToolButton {
+				contentItem: Image {
+					fillMode: Image.Pad
+					horizontalAlignment: Image.AlignHCenter
+					verticalAlignment: Image.AlignVCenter
+					source: "images/menu.png"
+				}
+				onClicked: optionsMenu.open()
+
+				Menu {
+					id: optionsMenu
+					x: parent.width - width
+					transformOrigin: Menu.TopRight
+
+					MenuItem {
+						text: "Otwórz plik..."
+						onTriggered: fileDialog.open()
+					}
+
+					MenuItem {
+						text: "O programie"
+					}
+				}
+			}
+
+			Label {
+				id: titleLabel
+				text: model.source
+				font.pixelSize: 20
+				elide: Label.ElideRight
+				horizontalAlignment: Qt.AlignHCenter
+				verticalAlignment: Qt.AlignVCenter
+				Layout.fillWidth: true
+			}
+
+			Button {
+				text: qsTr("Odświerz")
+				onClicked: model.parseCSV()
+			}
+		}
+	}
+
     Model {
         id: model
 
@@ -45,17 +92,7 @@ ApplicationWindow {
 
 			Text {
 				Layout.minimumWidth: listViewItemWidth
-				text: temperatureBegin
-			}
-
-			Text {
-				Layout.minimumWidth: listViewItemWidth
-				text: temperatureEnd
-			}
-
-			Text {
-				Layout.minimumWidth: listViewItemWidth
-				text: enthalpy
+				text: name
 			}
 
 			Button {
@@ -85,7 +122,7 @@ ApplicationWindow {
 				id: transitionListView
 
                 Layout.fillHeight: true
-				implicitWidth: listViewItemWidth * 3 + addTransitionButton.width * 2 + listViewItemSpacing * 5
+				implicitWidth: listViewItemWidth * 1 + addTransitionButton.width * 2 + listViewItemSpacing * 5
                 clip: true
 
 				model: transitionList
@@ -97,9 +134,7 @@ ApplicationWindow {
 					spacing: listViewItemSpacing
 					bottomPadding: 20
 
-					Label { width: listViewItemWidth; text: qsTr("T. początkowa [" + temperatureUnit + "]") }
-					Label { width: listViewItemWidth; text: qsTr("T. końcowa [" + temperatureUnit + "]") }
-					Label { width: listViewItemWidth; text: qsTr("Entalpia [" + enthalpyUnit + "]") }
+					Label { width: listViewItemWidth; text: qsTr("Nazwa") }
 					Label { width: listViewItemWidth; text: qsTr("Operacje") }
                 }
             }
@@ -143,16 +178,6 @@ ApplicationWindow {
             RowLayout
             {
                 spacing: 5
-
-                Button {
-                    text: "Wybierz plik..."
-                    onClicked: fileDialog.open()
-                }
-
-                Button {
-                    text: "Parsuj"
-                    onClicked: model.parseCSV()
-                }
 
                 Label
                 {
@@ -205,7 +230,10 @@ ApplicationWindow {
         title: "Please choose a file"
         folder: shortcuts.home
 
-        onAccepted: model.setSourceAsUrl(fileDialog.fileUrl)
+		onAccepted: {
+			model.setSourceAsUrl(fileDialog.fileUrl)
+			model.parseCSV()
+		}
 
         onRejected: console.log("Canceled")
     }

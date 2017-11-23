@@ -16,7 +16,7 @@ ChartView
 //		min: model.minT
 		min: 0.0
 		max: 1.0
-		titleText: "x"
+		titleText: "T [K]"
 	}
 
 	ValueAxis {
@@ -25,7 +25,7 @@ ChartView
 		tickCount: 10
 		min: 0.0
 		max: 1.0
-		titleText: "y"
+		titleText: "dQ/dT [kJ/mol]"
 	}
 
 	LineSeries {
@@ -33,19 +33,13 @@ ChartView
 
 		axisX: xAxis
 		axisY: yAxis
-		name: if (transition.bAlign) {
-				  if (transition.b < 0)
-					root.label + " + " + -transition.b
-				  else
-					root.label + " - " + transition.b
-			  } else
-				  root.label
+		name: makeLabel()
 //        markerSize: 5.0
 	}
 
 	Connections {
 		target: transition
-		onXyChanged: {
+		onCpTChanged: {
 			transition.updateSeries(xySeries)
 			updateAxes()
 		}
@@ -73,4 +67,18 @@ ChartView
 		yAxis.min = minY
 		yAxis.max = maxY
 	}
+
+	function makeLabel()
+	{
+		var label = Math.round(transition.a * 1000) / 1000
+		if (transition.bAlign) {
+			if (transition.b < 0)
+				label += " (" + root.label + " + " + -transition.b + ")"
+			else
+				label += " (" + root.label + " - " + transition.b + ")"
+		} else
+			label += " " + root.label
+		return label
+	}
+
 }

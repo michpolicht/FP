@@ -10,12 +10,15 @@
 
 Transition::Transition(QObject * parent):
 	QObject(parent),
+	m_name(tr("Bez nazwy")),
 	m_temperatureBegin(0.0),
 	m_temperatureEnd(10.0),
 	m_enthalpy(10.0),
 	m_functionExpr("function(x) { return -x; }"),
 	m_samples(10),
 	m_bAlign(true),
+	m_subtractBeingTemperature(false),
+	m_subtractEndTemperature(false),
 	m_a(qreal()),
 	m_b(qreal())
 {
@@ -27,6 +30,19 @@ Transition::Transition(QObject * parent):
 Transition::~Transition()
 {
 	qDebug("Transition::~Transition() [%p]", this);
+}
+
+QString Transition::name() const
+{
+	return m_name;
+}
+
+void Transition::setName(const QString & name)
+{
+	if (m_name != name) {
+		m_name = name;
+		emit nameChanged();
+	}
 }
 
 qreal Transition::temperatureBegin() const
@@ -107,6 +123,32 @@ void Transition::setBAlign(bool bAlign)
 	}
 }
 
+bool Transition::subtractBeginTemperature() const
+{
+	return m_subtractBeingTemperature;
+}
+
+void Transition::setSubtractBeginTemperature(bool flag)
+{
+	if (m_subtractBeingTemperature != flag) {
+		m_subtractBeingTemperature = flag;
+		emit subtractBeginTemperatureChanged();
+	}
+}
+
+bool Transition::subtractEndTemperature() const
+{
+	return m_subtractEndTemperature;
+}
+
+void Transition::setSubtractEndTemperature(bool flag)
+{
+	if (m_subtractEndTemperature != flag) {
+		m_subtractEndTemperature = flag;
+		emit subtractEndTemperatureChanged();
+	}
+}
+
 qreal Transition::a() const
 {
 	return m_a;
@@ -133,16 +175,6 @@ void Transition::setB(qreal b)
 	}
 }
 
-QList<qreal> * Transition::x()
-{
-	return & m_x;
-}
-
-QList<qreal> * Transition::y()
-{
-	return & m_y;
-}
-
 QList<qreal> * Transition::t()
 {
 	return & m_t;
@@ -157,16 +189,17 @@ Transition * Transition::clone() const
 {
 	qDebug("Transition::clone() [%p]", this);
 	Transition * clone = new Transition;
+	clone->m_name = m_name;
 	clone->m_temperatureBegin = m_temperatureBegin;
 	clone->m_temperatureEnd = m_temperatureEnd;
 	clone->m_enthalpy = m_enthalpy;
 	clone->m_functionExpr = m_functionExpr;
 	clone->m_samples = m_samples;
 	clone->m_bAlign = m_bAlign;
+	clone->m_subtractBeingTemperature = m_subtractBeingTemperature;
+	clone->m_subtractEndTemperature = m_subtractEndTemperature;
 	clone->m_a = m_a;
 	clone->m_b = m_b;
-	clone->m_x = m_x;
-	clone->m_y = m_y;
 	clone->m_t = m_t;
 	clone->m_cp = m_cp;
 
@@ -177,19 +210,19 @@ void Transition::copy(Transition * other)
 {
 	disconnectUpdateSignals();
 
+	setName(other->m_name);
 	setTemperatureBegin(other->m_temperatureBegin);
 	setTemperatureEnd(other->m_temperatureEnd);
 	setEnthalpy(other->m_enthalpy);
 	setFunctionExpr(other->m_functionExpr);
 	setSamples(other->m_samples);
 	setBAlign(other->m_bAlign);
+	setSubtractBeginTemperature(other->m_subtractBeingTemperature);
+	setSubtractEndTemperature(other->m_subtractEndTemperature);
 	m_a = other->m_a;
 	emit aChanged();
 	m_b = other->m_b;
 	emit bChanged();
-	m_x = other->m_x;
-	m_y = other->m_y;
-	emit xyChanged();
 	m_t = other->m_t;
 	m_cp = other->m_cp;
 	emit cpTChanged();
@@ -215,9 +248,6 @@ void Transition::updateSeries(QtCharts::QAbstractSeries * series)
 
 void Transition::update()
 {
-	m_x.clear();
-	m_y.clear();
-
 	QJSEngine engine;
 	QJSValue function = engine.evaluate(functionExpr());
 	if (function.isError()) {
@@ -234,103 +264,35 @@ void Transition::update()
 		return;
 	}
 
-	if (bAlign())
-		m_b = function.call({temperatureEnd()}).toNumber();
-	else
+	if (bAlign()) {
+		m_b = function.call({getSubtractedTemperature(temperatureEnd())}).toNumber();
+	} else
 		m_b = 0.0;
 	emit bChanged();
 
-	qreal x = temperatureBegin();
-	for (int i = 0; i <= samples(); i++) {
-		m_x.append(x);
-		m_y.append(function.call({x}).toNumber() - m_b);
-		qDebug("appended point (%f, %f)", m_x.last(), m_y.last());
-		x += dT;
-	}
-//	emit xyChanged();
-
-	m_a = calculateA();
-	emit aChanged();
+	qreal t = getSubtractedTemperature(temperatureBegin());
 
 	m_t.clear();
 	m_cp.clear();
-	qreal t = temperatureBegin();
-	for (int i = 0; i < m_x.count(); i++) {
+	for (int i = 0; i <= samples(); i++) {
 		m_t.append(t);
-		m_cp.append(m_y.at(i) * m_a);
+		m_cp.append(function.call({t}).toNumber() - m_b);
+		qDebug("appended point (%f, %f)", m_t.last(), m_cp.last());
 		t += dT;
 	}
-	emit xyChanged();
-	emit cpTChanged();
+
+	m_a = calculateA(m_t, m_cp);
+	emit aChanged();
+
+	for (int i = 0; i < m_t.count(); i++)
+		m_cp[i] *= m_a;
 
 #ifndef QT_NO_DEBUG
 	if (!qFuzzyCompare(::integrate(m_t, m_cp, m_t.first(), m_t.last()), enthalpy()))
 		qWarning("Target enthalpy (%f) and integral (%f) do not match!", enthalpy(), ::integrate(m_t, m_cp, m_t.first(), m_t.last()));
 #endif
-}
 
-void Transition::updateXY(const QString & expr, qreal spanX, int samples)
-{
-	m_x.clear();
-	m_y.clear();
-
-	QJSEngine engine;
-//	QJSValue function = engine.evaluate("function(x) { return x; }");
-	qDebug() << expr;
-	QJSValue function = engine.evaluate(expr);
-	if (function.isError()) {
-		qWarning("Invalid expression!");
-		return;
-	}
-
-//	qDebug("error: % d", function.isError());
-//	qreal dx = (temperatureEnd() - temperatureBegin()) / samples;
-
-	qreal dx = spanX / samples;
-	qDebug("dx = %f", dx);
-	// @todo Qt has wrong implementation of machine epsilon... :/
-	if (qFuzzyIsNull(dx)) {
-		qWarning("dx is too small!");
-		return;
-	}
-
-	qreal x = 0.0;
-	for (int i = 0; i <= samples; i++) {
-		m_x.append(x);
-		m_y.append(function.call({x}).toNumber());
-		qDebug("appended point (%f, %f)", m_x.last(), m_y.last());
-		x += dx;
-	}
-
-	m_b = m_y.last();
-	emit bChanged();
-
-	emit xyChanged();
-//	m_t.clear();
-//	m_cp.clear();
-//	qreal dT = (temperatureEnd() - temperatureBegin()) / samples;
-//	qreal t = temperatureBegin();
-//	for (int i = 0; i < samples; i++) {
-//		m_t.append(t);
-//		m_cp.append(function.call({t}));
-//		t += dT;
-//	}
-}
-
-qreal Transition::calculateA(qreal enthalpy, bool alignToZero) const
-{
-	if (m_x.isEmpty())
-		return 0.0;
-
-	QList<qreal> y = m_y;
-	if (alignToZero)
-		for (int i = 0; i < y.count(); i++)
-			y[i] -= m_b;
-
-	qreal xyIntegral = ::integrate(m_x, y, m_x.first(), m_x.last());
-	qDebug("xyIntegral = %f", xyIntegral);
-
-	return enthalpy / xyIntegral;
+	emit cpTChanged();
 }
 
 void Transition::deleteLater()
@@ -346,6 +308,8 @@ void Transition::connectUpdateSignals()
 	connect(this, & Transition::functionExprChanged, this, & Transition::update);
 	connect(this, & Transition::samplesChanged, this, & Transition::update);
 	connect(this, & Transition::bAlignChanged, this, & Transition::update);
+	connect(this, & Transition::subtractBeginTemperatureChanged, this, & Transition::update);
+	connect(this, & Transition::subtractEndTemperatureChanged, this, & Transition::update);
 }
 
 void Transition::disconnectUpdateSignals()
@@ -353,13 +317,22 @@ void Transition::disconnectUpdateSignals()
 	disconnect(this);
 }
 
-qreal Transition::calculateA() const
+qreal Transition::calculateA(const QList<qreal> & x, const QList<qreal> & y) const
 {
-	if (m_x.isEmpty())
+	if (x.isEmpty())
 		return 0.0;
 
-	qreal xyIntegral = ::integrate(m_x, m_y, m_x.first(), m_x.last());
-	qDebug("xyIntegral = %f", xyIntegral);
+	qreal xyIntegral = ::integrate(x, y, x.first(), x.last());
+	qDebug("calculateA integral = %f", xyIntegral);
 
 	return enthalpy() / xyIntegral;
+}
+
+qreal Transition::getSubtractedTemperature(qreal t) const
+{
+	if (subtractBeginTemperature())
+		t -= temperatureBegin();
+	if (subtractEndTemperature())
+		t -= temperatureEnd();
+	return t;
 }

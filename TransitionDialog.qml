@@ -5,11 +5,11 @@ import QtQuick.Layouts 1.1
 import FP 1.0
 
 Dialog {
-    id: dialog
+	id: dialog
 
 	modal: true
 	title: "Przejście fazowe - Edycja"
-    standardButtons: Dialog.Ok | Dialog.Cancel
+	standardButtons: Dialog.Ok | Dialog.Cancel
 	closePolicy: Popup.CloseOnEscape
 	focus: true
 
@@ -24,7 +24,20 @@ Dialog {
 			columns: 2
 
 			Label {
-				text: "Temperatura początkowa [" + temperatureUnit + "]:"
+				text: "Nazwa:"
+			}
+
+			TextField {
+				id: nameField
+
+				placeholderText: qsTr("nazwa")
+				text: transitionClone.name
+
+				onEditingFinished: transitionClone.name = text
+			}
+
+			Label {
+				text: qsTr("Temperatura początkowa [" + temperatureUnit + "]:")
 			}
 
 			TextField {
@@ -48,7 +61,7 @@ Dialog {
 			}
 
 			Label {
-				text: "Temperatura końcowa [" + temperatureUnit + "]:"
+				text: qsTr("Temperatura końcowa [" + temperatureUnit + "]:")
 			}
 
 			TextField {
@@ -72,7 +85,7 @@ Dialog {
 			}
 
 			Label {
-				text: "Entalpia [" + enthalpyUnit + "]:"
+				text: qsTr("Entalpia [" + enthalpyUnit + "]:")
 			}
 
 			TextField {
@@ -96,21 +109,48 @@ Dialog {
 			}
 
 			Label {
-				text: "Funkcja:"
+				Layout.alignment: Qt.AlignTop
+
+				text: qsTr("Funkcja:")
 			}
 
-			TextField {
-				id: functionExprField
+			Column {
+				spacing: 5
 
-//				placeholderText: qsTr("function(x) { return -x } ")
-//				validator: DoubleValidator {}
-				text: transitionClone.functionExpr
+				ComboBox {
+					id: functionCombo
 
-				onEditingFinished: if (transitionClone.isExprValid(text)) transitionClone.functionExpr = text
+					width: parent.width
+					editable: false
+					textRole: "text"
+					model: ListModel {
+						id: model
+						ListElement { text: "Liniowa malejąca"; expr: "function (x) { return -x; }" }
+						ListElement { text: "Kwadratowa"; expr: "function (x) { return x * x; }" }
+						ListElement { text: "Własna" }
+					}
+					onActivated: {
+						functionExprField.text = model.get(currentIndex).expr
+						transitionClone.functionExpr = model.get(currentIndex).expr
+					}
+				}
+
+				TextField {
+					id: functionExprField
+
+					text: transitionClone.functionExpr
+
+					onEditingFinished: {
+						if (transitionClone.isExprValid(text)) {
+							transitionClone.functionExpr = text
+							functionCombo.currentIndex = functionCombo.model.count - 1
+						}
+					}
+				}
 			}
 
 			Label {
-				text: "Próbkowanie:"
+				text: qsTr("Próbkowanie:")
 			}
 
 			TextField {
@@ -134,7 +174,7 @@ Dialog {
 			}
 
 			Label {
-				text: "Wyrównaj do zera:"
+				text: qsTr("Wyrównaj do zera:")
 			}
 
 			CheckBox {
@@ -145,19 +185,38 @@ Dialog {
 				onToggled: transitionClone.bAlign = checked
 			}
 
-			Button {
-				text: "TEMP integrate"
-				onClicked: console.log(transitionClone.calculateA(Number.fromLocaleString(Qt.locale(), enthalpyField.text), alignToZeroBox.checked))
+			Label {
+				text: qsTr("Odejmij temperaturę początkową:")
+			}
+
+			CheckBox {
+				id: subtractBeginTemperatureBox
+
+				checked: transitionClone.subtractBeginTemperature
+
+				onToggled: transitionClone.subtractBeginTemperature = checked
+			}
+
+			Label {
+				text: qsTr("Odejmij temperaturę końcową:")
+			}
+
+			CheckBox {
+				id: subtractEndTemperatureBox
+
+				checked: transitionClone.subtractEndTemperature
+
+				onToggled: transitionClone.subtractEndTemperature = checked
 			}
 		}
 
 		TransitionChart {
 			Layout.preferredWidth: 600
 			Layout.preferredHeight: 600
-//			Layout.fillWidth: true
+			//			Layout.fillWidth: true
 			Layout.fillHeight: true
 
-			label: "function(x)"
+			label: makeTransitionChartLabel()
 			transition: dialog.transitionClone
 		}
 	}
@@ -168,19 +227,7 @@ Dialog {
 		onWidthChanged: ensureVisible()
 	}
 
-	onAccepted: {
-		transition.copy(transitionClone)
-//		if (temperatureBeginField.acceptableInput)
-//			transitionClone.temperatureBegin = Number.fromLocaleString(Qt.locale(), temperatureBeginField.text)
-//		if (temperatureEndField.acceptableInput)
-//			transitionClone.temperatureEnd = Number.fromLocaleString(Qt.locale(), temperatureEndField.text)
-//		if (enthalpyField.acceptableInput)
-//			transitionClone.enthalpy = Number.fromLocaleString(Qt.locale(), enthalpyField.text)
-////		if (samplesField.acceptableInput)
-////			transitionClone.samples = Number.fromLocaleString(Qt.locale(), samplesField.text)
-//		if (transitionClone.isExprValid(functionExprField.text))
-//			transitionClone.functionExpr = functionExprField.text
-	}
+	onAccepted: transition.copy(transitionClone)
 
 	onOpened: ensureVisible()
 
@@ -196,5 +243,14 @@ Dialog {
 
 	function updateXY() {
 		transitionClone.updateXY(functionExprField.text, temperatureEnd - temperatureBegin, samples)
+	}
+
+	function makeTransitionChartLabel() {
+		var xLabel = "x"
+		if (transitionClone.subtractBeginTemperature)
+			xLabel += " - " + transitionClone.temperatureBegin
+		if (transitionClone.subtractEndTemperature)
+			xLabel += " - " + transitionClone.temperatureEnd + ")"
+		return "function(" + xLabel + ")"
 	}
 }
