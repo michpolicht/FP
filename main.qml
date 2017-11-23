@@ -6,15 +6,22 @@ import QtCharts 2.2
 
 import FP 1.0
 
+/**
+  @todo H0.
+  */
 ApplicationWindow {
     id: appWindow
 
     visible: true
-    width: 1024
+	width: 1280
     height: 768
-    title: qsTr("FP Projekt")
+	title: qsTr("FP Projekt")
 
-    property var transitionList: model.transitionList
+	property var transitionList: model.transitionList
+	property string enthalpyUnit: "kJ/mol"
+	property string temperatureUnit: "K"
+	property int listViewItemWidth: 100
+	property int listViewItemSpacing: 5
 
     Model {
         id: model
@@ -22,86 +29,78 @@ ApplicationWindow {
         source: "../FP1/data/entalpia.csv"
     }
 
-    MouseArea {
-        id: mouseArea
-        anchors.fill: parent
-        hoverEnabled: true
+	MouseArea {
+		id: mouseArea
+		anchors.fill: parent
+		hoverEnabled: true
+	}
 
-        onClicked: console.log("dupa: " + mouseX)
-    }
+	Component {
+		id: transitionListDelegate
 
-    RowLayout {
+		RowLayout {
+			id: transitionListDelegateLayout
+
+			spacing: listViewItemSpacing
+
+			Text {
+				Layout.minimumWidth: listViewItemWidth
+				text: temperatureBegin
+			}
+
+			Text {
+				Layout.minimumWidth: listViewItemWidth
+				text: temperatureEnd
+			}
+
+			Text {
+				Layout.minimumWidth: listViewItemWidth
+				text: enthalpy
+			}
+
+			Button {
+				id: editButton
+
+				text: qsTr("Edytuj...")
+				onClicked: createTransitionDialog(index)
+			}
+
+			Button {
+				text: qsTr("Usuń")
+				onClicked: transitionList.remove(index)
+			}
+		}
+	}
+
+	RowLayout {
         anchors.fill: parent
         anchors.margins: 20
         spacing: 5
-
-        Component {
-            id: t1Delegate
-
-            Row {
-                padding: 5
-                spacing: 5
-
-                TextField
-                {
-                    implicitWidth: 100
-                    placeholderText: qsTr("Temperatura")
-                    validator: DoubleValidator {}
-                    text: temperature
-
-                    onAccepted: transitionList.setT1(index, Number.fromLocaleString(Qt.locale(), text))
-                }
-
-                TextField
-                {
-                    implicitWidth: 100
-                    placeholderText: qsTr("Entalpia")
-                    validator: DoubleValidator {}
-                    text: enthalpy
-
-                    onAccepted: transitionList.setH(index, Number.fromLocaleString(Qt.locale(), text))
-                }
-
-//                Label {
-//                    text: temperature
-//                }
-
-//                Label {
-//                    text: temperature
-//                }
-
-                Button {
-                    text: qsTr("Edytuj...")
-                    onClicked: createTransitionDialog(index)
-                }
-
-                Button {
-                    text: qsTr("Usuń")
-                    onClicked: transitionList.remove(index)
-                }
-            }
-        }
 
         ColumnLayout
         {
             Layout.fillHeight: true
 
             ListView {
-                id: t1View
+				id: transitionListView
 
                 Layout.fillHeight: true
-                implicitWidth: 350
+				implicitWidth: listViewItemWidth * 3 + addTransitionButton.width * 2 + listViewItemSpacing * 5
                 clip: true
 
-                model: transitionList
-                delegate: t1Delegate
+				model: transitionList
+				delegate: transitionListDelegate
+				spacing: listViewItemSpacing
 
+//				headerPositioning: ListView.OverlayHeader
                 header: Row {
-                    padding: 5
-                    spacing: 5
+					spacing: listViewItemSpacing
+					bottomPadding: 20
 
-                    Label { width: 100; text: qsTr("Temperatura [K]") }
-                    Label { width: 100; text: qsTr("Entalpia [J]") }
+					Label { width: listViewItemWidth; text: qsTr("T. początkowa [" + temperatureUnit + "]") }
+					Label { width: listViewItemWidth; text: qsTr("T. końcowa [" + temperatureUnit + "]") }
+					Label { width: listViewItemWidth; text: qsTr("Entalpia [" + enthalpyUnit + "]") }
+					Label { width: listViewItemWidth; text: qsTr("Operacje") }
                 }
             }
 
@@ -110,7 +109,7 @@ ApplicationWindow {
                 id: addTransitionButton
 
                 text: "Dodaj przemianę..."
-                onClicked: transitionList.append()
+				onClicked: transitionList.append()
             }
         }
 
@@ -120,11 +119,13 @@ ApplicationWindow {
             Label {
                 Layout.alignment: Qt.AlignHCenter
 
-                text: "ΔH [J/mol]: " + model.integral
+				text: "ΔH [" + enthalpyUnit + "]: " + model.integral
                 font.pixelSize: 18
             }
 
             TCpChart {
+				id: tCpChart
+
                 Layout.fillHeight: true
                 Layout.fillWidth: true
 
@@ -133,6 +134,10 @@ ApplicationWindow {
 
                 model: model
                 label: model.source
+				temperatureUnit: appWindow.temperatureUnit
+				enthalpyUnit: appWindow.enthalpyUnit
+				minT: tSlider.first.value
+				maxT: tSlider.second.value
             }
 
             RowLayout
@@ -205,16 +210,19 @@ ApplicationWindow {
         onRejected: console.log("Canceled")
     }
 
-    function createTransitionDialog(index)
+	function createTransitionDialog(index)
     {
-        console.log(mouseArea.mouseX)
         var component = Qt.createComponent("TransitionDialog.qml");
-        var dialog = component.createObject(appWindow, {"parent": appWindow,
-                                                "x": mouseArea.mouseX,
-                                                "y": mouseArea.mouseY,
-                                                "transitionList": transitionList,
-                                                "index" : index,
-                                                "transitionList": transitionList});
-        dialog.open()
+		var dialog = component.createObject(appWindow, {"parent": appWindow,
+												"x": mouseArea.mouseX,
+												"y": mouseArea.mouseY,
+												"transition": transitionList.at(index),
+												"transitionClone": transitionList.at(index).clone(),
+												"transitionList": transitionList,
+												"temperatureUnit": temperatureUnit,
+												"enthalpyUnit": enthalpyUnit
+											});
+		dialog.accepted.connect(tCpChart.updateCumulativeSeries)
+		dialog.open()
     }
 }

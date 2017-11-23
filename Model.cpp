@@ -1,9 +1,11 @@
 #include "Model.hpp"
+#include "functions.hpp"
 
 #include <QFile>
 #include <QDir>
 #include <QtDebug>
 #include <QXYSeries>
+#include <QVector>
 
 #include <exception>
 
@@ -14,7 +16,7 @@ Model::Model(QObject * parent):
 	m_maxT(0.0),
 	m_minCp(0.0),
 	m_maxCp(0.0),
-	m_transitionList(new TransitionModel)
+	m_transitionList(new TransitionList)
 {
 //	connect(this, & Model::sourceChanged, this, & Model::parseCSV);
 }
@@ -120,17 +122,19 @@ void Model::parseCSV()
 
 void Model::integrate(qreal from, qreal to)
 {
-	m_integral = 0.0;
-	// note: QList::size() returns int...
-	for (int i = 0; i < m_t.size() - 1; i++) {
-		if (m_t.at(i + 1) > to)
-			break;
-		if (m_t.at(i) < from)
-			continue;
-		m_integral += 0.5 * (m_t.at(i + 1) - m_t.at(i)) * (m_cp.at(i) + m_cp.at(i + 1));
-	}
+//	m_integral = 0.0;
+//	// note: QList::size() returns int...
+//	for (int i = 0; i < m_t.size() - 1; i++) {
+//		if (m_t.at(i + 1) > to)
+//			break;
+//		if (m_t.at(i) < from)
+//			continue;
+//		m_integral += 0.5 * (m_t.at(i + 1) - m_t.at(i)) * (m_cp.at(i) + m_cp.at(i + 1));
+//	}
 
-	m_integral += integrateTransition(from, to);
+	m_integral = ::integrate(m_t, m_cp, from, to);
+
+	m_integral += integrateTransitions(from, to);
 
 	emit integralChanged();
 }
@@ -144,6 +148,106 @@ void Model::updateSeries(QtCharts::QAbstractSeries * series)
         for (int i = 0; i < m_t.size(); i++)
             xySeries->append(m_t.at(i), m_cp.at(i));
     }
+}
+
+void Model::updateCumulativeSeries(QtCharts::QAbstractSeries * series)
+{
+	qDebug("updating cumulative series");
+	if (series) {
+		QtCharts::QXYSeries * xySeries = static_cast<QtCharts::QXYSeries *>(series);
+		xySeries->clear();
+
+		// Initialize cumulative data.
+		QList<std::pair<qreal, qreal>> cumulative;
+		for (int i = 0; i < m_t.count(); i++)
+			cumulative.append(std::make_pair(m_t.at(i), m_cp.at(i)));
+
+		// Append transition points to the set, we'll sort them later.
+		int transitionsCount = m_transitionList->rowCount(QModelIndex());
+		for (int nthTransition = 0; nthTransition < transitionsCount; nthTransition++) {
+			QList<qreal> * transitionT = m_transitionList->at(nthTransition)->t();
+			if (transitionT->count() == 0)
+				continue;
+			QList<qreal> * transitionCp = m_transitionList->at(nthTransition)->cp();
+			int itTransitionT = 0;
+			QList<std::pair<qreal, qreal>> cumulativeTail;
+//			bool updateCumulativePoint = false;
+			for (int cumulativeIt = 0; cumulativeIt < cumulative.count() - 1; cumulativeIt++) {
+
+				while (transitionT->at(itTransitionT) >= cumulative.at(cumulativeIt).first && transitionT->at(itTransitionT) < cumulative.at(cumulativeIt + 1).first) {
+					qDebug("Appending point %d", itTransitionT);
+					cumulativeTail.append(std::make_pair(transitionT->at(itTransitionT), transitionCp->at(itTransitionT) + cumulative.at(cumulativeIt).second));
+					itTransitionT++;
+					if (itTransitionT >= transitionT->count())
+						break;
+				}
+				if (itTransitionT >= transitionT->count())
+					break;
+//				if (itTransitionT > 0) {
+//					if (updateCumulativePoint)
+//						cumulative[cumulativeIt].second += transitionCp->at(itTransitionT);
+//					else
+//						updateCumulativePoint = true;
+//				}
+			}
+			cumulative += cumulativeTail;
+			qSort(cumulative.begin(), cumulative.end(), CumulativeLessThan());
+
+
+//			for (int itT = 0; itT < m_t.count(); itT++) {
+//				if (transitionT->at(itTransitionT) < m_t.at(itT))
+//					continue;
+//				if (transitionT->at(itTransitionT) >= m_t.at(itT)) {
+//					cumulative.append(std::make_pair(transitionT->at(itTransitionT), transitionCp->at(itTransitionT) + m_cp.at(itT)));
+//					itTransitionT++;
+//				}
+//				if (itTransitionT >= transitionT->count())
+//					break;
+//			}
+		}
+
+
+//		qSort(cumulative.begin(), cumulative.end(), CumulativeLessThan());
+
+		for (auto it = cumulative.begin(); it != cumulative.end(); ++it)
+			xySeries->append(it->first, it->second);
+
+//		qreal lowestT = std::numeric_limits<qreal>::infinity();
+//		int transitionIndex;
+//		for (int i = 0; i < transitionsCount; i++) {
+//			Transition * transition = m_transitionList->at(i);
+
+//		}
+
+//		for (int i = 0; i < m_t.count() - 1; i++) {
+//		}
+
+//		for (int i = 0; i < m_transitionList->rowCount(QModelIndex()); i++) {
+//			Transition * transition = m_transitionList->at(i);
+//			QList<qreal> * transitionT = transition->t();
+//			QList<qreal> * transitionCp = transition->cp();
+
+//			int start = transition->temperatureBegin()
+
+////			for (int j = 0; j < transitionT->count(); j++) {
+
+//			}
+
+//			if (t->temperatureBegin() >= from && t->temperatureBegin() <= to) {
+//				result += t->enthalpy();
+//			}
+//		}
+
+		// note: QList::size() returns int...
+//		for (int i = 0; i < t.size(); i++) {
+//			xySeries->append(t.at(i), cp.at(i));
+//		}
+	}
+}
+
+bool Model::CumulativeLessThan::operator ()(std::pair<qreal, qreal> p1, std::pair<qreal, qreal> p2) const
+{
+	return p1.first < p2.first;
 }
 
 void Model::findMinMaxT()
@@ -182,16 +286,33 @@ void Model::findMinMaxCp()
 	}
 }
 
-qreal Model::integrateTransition(qreal from, qreal to)
+qreal Model::integrateTransitions(qreal from, qreal to)
 {
 	qreal result = 0.0;
 
 	for (int i = 0; i < m_transitionList->rowCount(QModelIndex()); i++) {
-		Transition trans = m_transitionList->at(i);
-		if (trans.t1 >= from && trans.t1 <= to) {
-			result += trans.h;
-		}
+		Transition * t = m_transitionList->at(i);
+		result += ::integrate(*t->t(), *t->cp(), from, to);
+//		if (t->temperatureBegin() >= from && t->temperatureBegin() <= to) {
+//			result += t->enthalpy();
+//		}
 	}
 
 	return result;
+}
+
+void Model::insertTransitionToCumulative(const Transition & transition, QList<qreal> & t, QList<qreal> & cp)
+{
+//	QList<qreal> * transitionT = transition->t();
+//	QList<qreal> * transitionCp = transition->cp();
+
+//	int startIndex = 0;
+//	while (startIndex < t.size() && t.at(startIndex) < transition->temperatureBegin())
+//		startIndex++;
+
+//	for (int i = 0; i < t.size(); i++) {
+//		t.at(i)
+//	}
+
+//	int startIndex = transition->temperatureBegin();
 }

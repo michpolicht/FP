@@ -1,18 +1,23 @@
-#ifndef TRANSITIONMODEL_HPP
-#define TRANSITIONMODEL_HPP
+#ifndef TRANSITIONLIST_HPP
+#define TRANSITIONLIST_HPP
 
 #include "Transition.hpp"
 
 #include <QAbstractListModel>
 #include <QList>
+#include <QSignalMapper>
 
-class TransitionModel:
+#include <memory>
+
+class TransitionList:
 	public QAbstractListModel
 {
 	Q_OBJECT
 
 	public:
-		TransitionModel(QObject * parent = 0);
+		TransitionList(QObject * parent = 0);
+
+		~TransitionList() override;
 
 		int rowCount(const QModelIndex & parent) const override;
 
@@ -20,17 +25,36 @@ class TransitionModel:
 
 		QHash<int, QByteArray> roleNames() const override;
 
-		Q_INVOKABLE const Transition & at(int index) const;
+		Q_INVOKABLE Transition * at(int index) const;
 
 		Q_INVOKABLE void append();
 
 		Q_INVOKABLE void remove(int index);
 
-		Q_INVOKABLE void setT1(int index, qreal temperature);
+//		Q_INVOKABLE qreal temperatureBegin(int index) const;
 
-		Q_INVOKABLE void setT2(int index, qreal temperature);
+//		Q_INVOKABLE void setTemperatureBegin(int index, qreal temperature);
 
-		Q_INVOKABLE void setH(int index, qreal enthalpy);
+//		Q_INVOKABLE qreal temperatureEnd(int index) const;
+
+//		Q_INVOKABLE void setTemperatureEnd(int index, qreal temperature);
+
+//		Q_INVOKABLE qreal enthalpy(int index) const;
+
+//		Q_INVOKABLE void setEnthalpy(int index, qreal enthalpy);
+
+//		Q_INVOKABLE qreal a(int index) const;
+
+//		Q_INVOKABLE qreal b(int index) const;
+
+//		Q_INVOKABLE int samples(int index) const;
+
+//		Q_INVOKABLE QString functionExpr(int index) const;
+
+//		Q_INVOKABLE void setFunctionExpr(int index, const QString & functionExpr);
+
+
+
 
 //		Qt::ItemFlags flags(const QModelIndex & index) const override;
 
@@ -46,15 +70,21 @@ class TransitionModel:
 
 //		void addPiece(const QPixmap &pixmap, const QPoint &location);
 //		void addPieces(const QPixmap& pixmap);
+
+	protected slots:
+		void dataChangedFromTransition(QObject * transition);
+
 	private:
 		enum class Role : int {
-			Temperature = Qt::UserRole,
-			Enthalpy
+			TEMPERATURE_BEGIN = Qt::UserRole,
+			TEMPERATURE_END,
+			ENTHALPY
 		};
 
 	private:
-		QList<Transition> m_list;
+		QList<Transition *> m_list;
 		QHash<int, QByteArray> m_roleNames;
+		QSignalMapper m_transitionSignalMapper;
 };
 
 #endif // TRANSITIONLISTMODEL_HPP

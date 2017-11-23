@@ -3,5 +3,6 @@
         <file>main.qml</file>
         <file>TCpChart.qml</file>
         <file>TransitionDialog.qml</file>
+        <file>TransitionChart.qml</file>
     </qresource>
 </RCC>

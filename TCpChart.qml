@@ -7,6 +7,11 @@ ChartView
 
     property var model
     property string label
+	property string temperatureUnit: "K"
+	property string enthalpyUnit: "kJ"
+	property string cpUnit: temperatureUnit + "⁻¹ " + enthalpyUnit
+	property alias minT: xAxis.min
+	property alias maxT: xAxis.max
 
     ValueAxis {
         id: xAxis
@@ -14,7 +19,7 @@ ChartView
         tickCount: 10
         min: model.minT
         max: model.maxT
-        titleText: "T [K]"
+		titleText: "T [" + temperatureUnit + "]"
     }
 
     ValueAxis {
@@ -23,21 +28,59 @@ ChartView
         tickCount: 10
         min: model.minCp
         max: model.maxCp
-        titleText: "Cp [J/(K mol)]"
+		titleText: "Cp [" + cpUnit + "]"
     }
 
-    LineSeries {
+	LineSeries {
+		id: cumulativeSeries
+
+		axisX: xAxis
+		axisY: yAxis
+		name: "Kumulacyjny"
+		color: "red"
+//        markerSize: 5.0
+	}
+
+	LineSeries {
         id: mainSeries
 
         axisX: xAxis
         axisY: yAxis
         name: root.label
-//        markerSize: 5.0
-    }
+		color: "blue"
+	}
 
-    Connections {
+	ScatterSeries {
+		id: mainSeriesScatter
+
+		axisX: xAxis
+		axisY: yAxis
+		name: root.label
+		color: "blue"
+		markerSize: 2.0
+		borderWidth: 0.0
+	}
+
+
+	ScatterSeries {
+		id: cumulativeScatter
+
+		axisX: xAxis
+		axisY: yAxis
+		name: "Kumulacyjny"
+		color: "red"
+		markerSize: 2.0
+		borderWidth: 0.0
+	}
+
+	Connections {
         target: model
-        onCpChanged: model.updateSeries(mainSeries)
+		onCpChanged: {
+			updateCumulativeSeries()
+			model.updateSeries(mainSeries)
+			model.updateSeries(mainSeriesScatter)
+		}
+
 //        onCpChanged: {
 //            model.updateSeries(mainSeries)
 //            xAxis.min = mainSeries.at(0).x
@@ -54,4 +97,10 @@ ChartView
 //            }
 //        }
     }
+
+	function updateCumulativeSeries()
+	{
+		model.updateCumulativeSeries(cumulativeSeries)
+		model.updateCumulativeSeries(cumulativeScatter)
+	}
 }

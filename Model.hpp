@@ -1,7 +1,7 @@
 #ifndef FILEREADER_HPP
 #define FILEREADER_HPP
 
-#include "TransitionModel.hpp"
+#include "TransitionList.hpp"
 
 #include <QObject>
 #include <QString>
@@ -58,12 +58,7 @@ class Model:
 
         void updateSeries(QtCharts::QAbstractSeries * series);
 
-	private:
-		void findMinMaxT();
-
-		void findMinMaxCp();
-
-		qreal integrateTransition(qreal from, qreal to);
+		void updateCumulativeSeries(QtCharts::QAbstractSeries * series);
 
 	signals:
 		void sourceChanged();
@@ -83,6 +78,25 @@ class Model:
 		void maxCpChanged();
 
 	private:
+		class CumulativeLessThan
+		{
+			public:
+				bool operator()(std::pair<qreal, qreal> p1, std::pair<qreal, qreal> p2) const;
+
+			private:
+				const QList<qreal> * m_t;
+		};
+
+	private:
+		void findMinMaxT();
+
+		void findMinMaxCp();
+
+		qreal integrateTransitions(qreal from, qreal to);
+
+		void insertTransitionToCumulative(const Transition & transition, QList<qreal> & t, QList<qreal> & cp);
+
+	private:
 		QString m_source;
 		QList<qreal> m_t;
 		QList<qreal> m_cp;
@@ -91,7 +105,7 @@ class Model:
 		qreal m_maxT;
 		qreal m_minCp;
 		qreal m_maxCp;
-		std::unique_ptr<TransitionModel> m_transitionList;
+		std::unique_ptr<TransitionList> m_transitionList;
 };
 
 #endif // FILEREADER_HPP
