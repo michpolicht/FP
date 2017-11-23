@@ -284,8 +284,13 @@ void Transition::update()
 	m_a = calculateA(m_t, m_cp);
 	emit aChanged();
 
-	for (int i = 0; i < m_t.count(); i++)
+	for (int i = 0; i < m_t.count(); i++) {
+		if (subtractBeginTemperature())
+			m_t[i] += temperatureBegin();
+		if (subtractEndTemperature())
+			m_t[i] += temperatureEnd();
 		m_cp[i] *= m_a;
+	}
 
 #ifndef QT_NO_DEBUG
 	if (!qFuzzyCompare(::integrate(m_t, m_cp, m_t.first(), m_t.last()), enthalpy()))

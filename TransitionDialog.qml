@@ -127,6 +127,8 @@ Dialog {
 						id: model
 						ListElement { text: "Liniowa malejąca"; expr: "function (x) { return -x; }" }
 						ListElement { text: "Kwadratowa"; expr: "function (x) { return x * x; }" }
+						ListElement { text: "Sześcienna"; expr: "function (x) { return x * x * x; }" }
+						ListElement { text: "Wykładnicza"; expr: "function (x) { return Math.exp(-x); }" }
 						ListElement { text: "Własna" }
 					}
 					onActivated: {
