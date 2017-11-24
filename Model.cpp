@@ -152,15 +152,17 @@ void Model::updateSeries(QtCharts::QAbstractSeries * series)
 
 void Model::updateCumulativeSeries(QtCharts::QAbstractSeries * series)
 {
+	// Uggliest code ever :/
+
 	qDebug("updating cumulative series");
 	if (series) {
 		QtCharts::QXYSeries * xySeries = static_cast<QtCharts::QXYSeries *>(series);
 		xySeries->clear();
 
 		// Initialize cumulative data.
-		QList<std::pair<qreal, qreal>> cumulative;
+		m_cumulative.clear();
 		for (int i = 0; i < m_t.count(); i++)
-			cumulative.append(std::make_pair(m_t.at(i), m_cp.at(i)));
+			m_cumulative.append(std::make_pair(m_t.at(i), m_cp.at(i)));
 
 		// Append transition points to the set, we'll sort them later.
 		int transitionsCount = m_transitionList->rowCount(QModelIndex());
@@ -172,11 +174,19 @@ void Model::updateCumulativeSeries(QtCharts::QAbstractSeries * series)
 			int itTransitionT = 0;
 			QList<std::pair<qreal, qreal>> cumulativeTail;
 //			bool updateCumulativePoint = false;
-			for (int cumulativeIt = 0; cumulativeIt < cumulative.count() - 1; cumulativeIt++) {
-
-				while (transitionT->at(itTransitionT) >= cumulative.at(cumulativeIt).first && transitionT->at(itTransitionT) < cumulative.at(cumulativeIt + 1).first) {
+			for (int cumulativeIt = 0; cumulativeIt < m_cumulative.count() - 1; cumulativeIt++) {
+				while (transitionT->at(itTransitionT) >= m_cumulative.at(cumulativeIt).first && transitionT->at(itTransitionT) < m_cumulative.at(cumulativeIt + 1).first) {
 					qDebug("Appending point %d", itTransitionT);
-					cumulativeTail.append(std::make_pair(transitionT->at(itTransitionT), transitionCp->at(itTransitionT) + cumulative.at(cumulativeIt).second));
+					qreal t1 = m_cumulative.at(cumulativeIt).second;
+//					qDebug("t1 %f", t1);
+					qreal t2 = m_cumulative.at(cumulativeIt + 1).second;
+//					qDebug("t2 %f", t2);
+					qreal base = m_cumulative.at(cumulativeIt + 1).first - m_cumulative.at(cumulativeIt).first;
+//					qDebug("base %f", base);
+					qreal cpPos = transitionT->at(itTransitionT) - m_cumulative.at(cumulativeIt).first;
+//					qDebug("cpPos %f", cpPos);
+//					cumulativeTail.append(std::make_pair(transitionT->at(itTransitionT), transitionCp->at(itTransitionT) + m_cumulative.at(cumulativeIt).second));
+					cumulativeTail.append(std::make_pair(transitionT->at(itTransitionT), transitionCp->at(itTransitionT) + trapezePoint(t1, t2, base, cpPos)));
 					itTransitionT++;
 					if (itTransitionT >= transitionT->count())
 						break;
@@ -190,8 +200,36 @@ void Model::updateCumulativeSeries(QtCharts::QAbstractSeries * series)
 //						updateCumulativePoint = true;
 //				}
 			}
-			cumulative += cumulativeTail;
-			qSort(cumulative.begin(), cumulative.end(), CumulativeLessThan());
+			// Adjust cumulative points.
+			int cumulativeIt = 0;
+			while (cumulativeIt < m_cumulative.count() && m_cumulative.at(cumulativeIt).first < transitionT->at(0))
+				cumulativeIt++;
+			if (cumulativeIt < m_cumulative.count())
+				for (int transitionIt = 0; transitionIt < transitionT->count() - 1; transitionIt++) {
+					qDebug("m_cumulative.at(cumulativeIt).first   %f ", m_cumulative.at(cumulativeIt).first);
+					while (m_cumulative.at(cumulativeIt).first  >= transitionT->at(transitionIt) && m_cumulative.at(cumulativeIt).first < transitionT->at(transitionIt + 1)) {
+						qreal t1 = transitionCp->at(transitionIt);
+//						qDebug("t1 %f", t1);
+						qreal t2 = transitionCp->at(transitionIt + 1);
+//						qDebug("t2 %f", t2);
+						qreal base = transitionT->at(transitionIt + 1) - transitionT->at(transitionIt);
+//						qDebug("base %f", base);
+						qreal cpPos = m_cumulative.at(cumulativeIt).first - transitionT->at(transitionIt);
+//						qDebug("cpPos %f", cpPos);
+						m_cumulative[cumulativeIt].second += trapezePoint(t1, t2, base, cpPos);
+	//					qDebug("cpPos %f", cpPos);
+	//					cumulativeTail.append(std::make_pair(transitionT->at(itTransitionT), transitionCp->at(itTransitionT) + m_cumulative.at(cumulativeIt).second));
+	//					cumulativeTail.append(std::make_pair(transitionT->at(itTransitionT), transitionCp->at(itTransitionT) + trapezePoint(t1, t2, base, cpPos)));
+						cumulativeIt++;
+						if (cumulativeIt >= m_cumulative.count())
+							break;
+					}
+					if (cumulativeIt >= m_cumulative.count())
+						break;
+				}
+
+			m_cumulative += cumulativeTail;
+			qSort(m_cumulative.begin(), m_cumulative.end(), CumulativeLessThan());
 
 
 //			for (int itT = 0; itT < m_t.count(); itT++) {
@@ -209,7 +247,7 @@ void Model::updateCumulativeSeries(QtCharts::QAbstractSeries * series)
 
 //		qSort(cumulative.begin(), cumulative.end(), CumulativeLessThan());
 
-		for (auto it = cumulative.begin(); it != cumulative.end(); ++it)
+		for (auto it = m_cumulative.begin(); it != m_cumulative.end(); ++it)
 			xySeries->append(it->first, it->second);
 
 //		qreal lowestT = std::numeric_limits<qreal>::infinity();
@@ -276,6 +314,10 @@ void Model::findMinMaxCp()
 		minCp = qMin(minCp, m_cp.at(i));
 		maxCp = qMax(maxCp, m_cp.at(i));
 	}
+	for (int i = 0; i < m_cumulative.size(); i++) {
+		minCp = qMin(minCp, m_cumulative.at(i).second);
+		maxCp = qMax(maxCp, m_cumulative.at(i).second);
+	}
 	if (maxCp != -std::numeric_limits<qreal>::infinity() && maxCp != m_maxCp) {
 		m_maxCp = maxCp;
 		emit maxCpChanged();
@@ -286,7 +328,7 @@ void Model::findMinMaxCp()
 	}
 }
 
-qreal Model::integrateTransitions(qreal from, qreal to)
+qreal Model::integrateTransitions(qreal from, qreal to) const
 {
 	qreal result = 0.0;
 
@@ -299,4 +341,10 @@ qreal Model::integrateTransitions(qreal from, qreal to)
 	}
 
 	return result;
+}
+
+qreal Model::trapezePoint(qreal t1, qreal t2, qreal base, qreal pos) const
+{
+	qDebug("trapeze point delta  %f", pos * (t2 - t1) / base);
+	return t1 + pos * (t2 - t1) / base;
 }

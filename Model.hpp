@@ -92,7 +92,9 @@ class Model:
 
 		void findMinMaxCp();
 
-		qreal integrateTransitions(qreal from, qreal to);
+		qreal integrateTransitions(qreal from, qreal to) const;
+
+		qreal trapezePoint(qreal t1, qreal t2, qreal base, qreal pos) const;
 
 	private:
 		QString m_source;
@@ -104,6 +106,7 @@ class Model:
 		qreal m_minCp;
 		qreal m_maxCp;
 		std::unique_ptr<TransitionList> m_transitionList;
+		QList<std::pair<qreal, qreal>> m_cumulative;
 };
 
 #endif // FILEREADER_HPP

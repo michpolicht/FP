@@ -11,8 +11,8 @@
 Transition::Transition(QObject * parent):
 	QObject(parent),
 	m_name(tr("Bez nazwy")),
-	m_temperatureBegin(0.0),
-	m_temperatureEnd(10.0),
+	m_temperatureBegin(100.0),
+	m_temperatureEnd(200.0),
 	m_enthalpy(10.0),
 	m_functionExpr("function(x) { return -x; }"),
 	m_samples(10),

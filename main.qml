@@ -73,7 +73,9 @@ ApplicationWindow {
     Model {
         id: model
 
-        source: "../FP1/data/entalpia.csv"
+		source: "../FP1/data/entalpia.csv"
+//		source: "../FP1/data/test2.txt"
+		Component.onCompleted: model.parseCSV()	// remove if source empty
     }
 
 	MouseArea {
