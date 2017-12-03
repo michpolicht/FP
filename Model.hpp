@@ -18,8 +18,9 @@ class Model:
 
 	public:
 		Q_PROPERTY(QString source READ source WRITE setSource NOTIFY sourceChanged)
-		Q_PROPERTY(QList<qreal> * t READ t NOTIFY tChanged)
-		Q_PROPERTY(QList<qreal> * cp READ cp NOTIFY cpChanged)
+		Q_PROPERTY(qreal baseEnthalpy READ baseEnthalpy WRITE setBaseEnthalpy NOTIFY baseEnthalpyChanged)
+		Q_PROPERTY(QList<qreal> * t READ t NOTIFY cpTChanged)
+		Q_PROPERTY(QList<qreal> * cp READ cp NOTIFY cpTChanged)
 		Q_PROPERTY(qreal integral READ integral NOTIFY integralChanged)
 		Q_PROPERTY(qreal minT READ minT NOTIFY minTChanged)
 		Q_PROPERTY(qreal maxT READ maxT NOTIFY maxTChanged)
@@ -32,6 +33,10 @@ class Model:
 		QString source() const;
 
 		void setSource(const QString & source);
+
+		qreal baseEnthalpy() const;
+
+		void setBaseEnthalpy(qreal enthalpy);
 
 		QList<qreal> * t();
 
@@ -63,9 +68,9 @@ class Model:
 	signals:
 		void sourceChanged();
 
-		void tChanged();
+		void baseEnthalpyChanged();
 
-		void cpChanged();
+		void cpTChanged();
 
 		void integralChanged();
 
@@ -98,6 +103,7 @@ class Model:
 
 	private:
 		QString m_source;
+		qreal m_baseEnthalpy;
 		QList<qreal> m_t;
 		QList<qreal> m_cp;
 		qreal m_integral;

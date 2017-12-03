@@ -11,6 +11,7 @@
 
 Model::Model(QObject * parent):
 	QObject(parent),
+	m_baseEnthalpy(0.0),
 	m_integral(0.0),
 	m_minT(0.0),
 	m_maxT(0.0),
@@ -31,6 +32,19 @@ void Model::setSource(const QString & source)
 	if (m_source != source) {
 		m_source = source;
 		emit sourceChanged();
+	}
+}
+
+qreal Model::baseEnthalpy() const
+{
+	return m_baseEnthalpy;
+}
+
+void Model::setBaseEnthalpy(qreal enthalpy)
+{
+	if (m_baseEnthalpy != enthalpy) {
+		m_baseEnthalpy = enthalpy;
+		emit baseEnthalpyChanged();
 	}
 }
 
@@ -113,8 +127,7 @@ void Model::parseCSV()
 	} catch (const std::runtime_error & e) {
 		qWarning(e.what());
 	}
-	emit tChanged();
-	emit cpChanged();
+	emit cpTChanged();
 
 	findMinMaxT();
 	findMinMaxCp();
@@ -135,6 +148,8 @@ void Model::integrate(qreal from, qreal to)
 	m_integral = ::integrate(m_t, m_cp, from, to);
 
 	m_integral += integrateTransitions(from, to);
+
+	m_integral += baseEnthalpy();
 
 	emit integralChanged();
 }
@@ -281,6 +296,7 @@ void Model::updateCumulativeSeries(QtCharts::QAbstractSeries * series)
 //			xySeries->append(t.at(i), cp.at(i));
 //		}
 	}
+	findMinMaxCp();
 }
 
 bool Model::CumulativeLessThan::operator ()(std::pair<qreal, qreal> p1, std::pair<qreal, qreal> p2) const

@@ -75,32 +75,19 @@ ChartView
 
 	Connections {
         target: model
-		onCpChanged: {
-			updateCumulativeSeries()
-			model.updateSeries(mainSeries)
-			model.updateSeries(mainSeriesScatter)
-		}
-
-//        onCpChanged: {
-//            model.updateSeries(mainSeries)
-//            xAxis.min = mainSeries.at(0).x
-//            xAxis.max = mainSeries.at(mainSeries.count - 1).x
-//            var yMin = Infinity;
-//            var yMax = 0.0;
-//            for (var i = 0; i < mainSeries.count; i++) {
-//                yMin = Math.min(yMin, mainSeries.at(i).y)
-//                yMax = Math.max(yMax, mainSeries.at(i).y)
-//            }
-//            if (yMin < yMax) {
-//                yAxis.min = yMin
-//                yAxis.max = yMax
-//            }
-//        }
+        onCpTChanged: updateSeries()
     }
 
-	function updateCumulativeSeries()
-	{
-		model.updateCumulativeSeries(cumulativeSeries)
-		model.updateCumulativeSeries(cumulativeScatter)
-	}
+    function updateSeries()
+    {
+        model.updateSeries(mainSeries)
+        model.updateSeries(mainSeriesScatter)
+        updateCumulativeSeries()
+    }
+
+    function updateCumulativeSeries()
+    {
+        model.updateCumulativeSeries(cumulativeSeries)
+        model.updateCumulativeSeries(cumulativeScatter)
+    }
 }

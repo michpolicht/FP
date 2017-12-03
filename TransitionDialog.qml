@@ -123,17 +123,28 @@ Dialog {
 					width: parent.width
 					editable: false
 					textRole: "text"
+
 					model: ListModel {
 						id: model
-						ListElement { text: "Liniowa malejąca"; expr: "function (x) { return -x; }" }
-						ListElement { text: "Kwadratowa"; expr: "function (x) { return x * x; }" }
-						ListElement { text: "Sześcienna"; expr: "function (x) { return x * x * x; }" }
-						ListElement { text: "Wykładnicza"; expr: "function (x) { return Math.exp(-x); }" }
+						ListElement { text: "Liniowa malejąca"; expr: "function(x) { return -x; }" }
+						ListElement { text: "Kwadratowa"; expr: "function(x) { return x * x; }" }
+						ListElement { text: "Sześcienna"; expr: "function(x) { return x * x * x; }" }
+						ListElement { text: "Wykładnicza"; expr: "function(x) { return Math.exp(-x / 10); }" }
+						ListElement { text: "Gauss"; expr: "function(x) { return Math.exp (-x * x / 1000); }" }
 						ListElement { text: "Własna" }
 					}
+
 					onActivated: {
 						functionExprField.text = model.get(currentIndex).expr
 						transitionClone.functionExpr = model.get(currentIndex).expr
+					}
+
+					Component.onCompleted: {
+						currentIndex = model.count - 1
+						for (var i = 0; i < model.count; i++) {
+							if (model.get(i).expr === transitionClone.functionExpr)
+								currentIndex = i
+						}
 					}
 				}
 
@@ -210,6 +221,31 @@ Dialog {
 
 				onToggled: transitionClone.subtractEndTemperature = checked
 			}
+
+			Label {
+				text: qsTr("Odejmij temperaturę [" + temperatureUnit + "]:")
+			}
+
+			TextField {
+				id: subtractTemperatureField
+
+				placeholderText: qsTr("temperatura [" + temperatureUnit + "]")
+				validator: DoubleValidator {}
+				text: transitionClone.subtractCustomTemperature
+
+				states: [
+					State {
+						when: !subtractTemperatureField.acceptableInput
+						PropertyChanges {
+							target: subtractTemperatureField
+							color: "red"
+						}
+					}
+				]
+
+				onEditingFinished: transitionClone.subtractCustomTemperature = Number.fromLocaleString(Qt.locale(), text)
+			}
+
 		}
 
 		TransitionChart {
@@ -249,10 +285,22 @@ Dialog {
 
 	function makeTransitionChartLabel() {
 		var xLabel = "x"
+		var subtractTemperature = -transitionClone.subtractCustomTemperature
 		if (transitionClone.subtractBeginTemperature)
-			xLabel += " - " + transitionClone.temperatureBegin
+			subtractTemperature -= transitionClone.temperatureBegin
 		if (transitionClone.subtractEndTemperature)
-			xLabel += " - " + transitionClone.temperatureEnd + ")"
+			subtractTemperature -= transitionClone.temperatureEnd
+		if (subtractTemperature !== 0.0) {
+			if (subtractTemperature < 0.0)
+				xLabel += " - " + Math.abs(subtractTemperature)
+			else
+				xLabel += " + " + subtractTemperature
+		}
+		// Math.exp (-x * x / 1000)
+//		if (transitionClone.subtractBeginTemperature)
+//			xLabel += " - " + transitionClone.temperatureBegin
+//		if (transitionClone.subtractEndTemperature)
+//			xLabel += " - " + transitionClone.temperatureEnd + ")"
 		return "function(" + xLabel + ")"
 	}
 }

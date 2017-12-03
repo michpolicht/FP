@@ -19,6 +19,7 @@ Transition::Transition(QObject * parent):
 	m_bAlign(true),
 	m_subtractBeingTemperature(false),
 	m_subtractEndTemperature(false),
+	m_subtractCustomTemperature(0.0),
 	m_a(qreal()),
 	m_b(qreal())
 {
@@ -149,6 +150,19 @@ void Transition::setSubtractEndTemperature(bool flag)
 	}
 }
 
+qreal Transition::subtractCustomTemperature() const
+{
+	return m_subtractCustomTemperature;
+}
+
+void Transition::setSubtractCustomTemperature(qreal temperature)
+{
+	if (m_subtractCustomTemperature != temperature) {
+		m_subtractCustomTemperature = temperature;
+		emit subtractCustomTemperatureChanged();
+	}
+}
+
 qreal Transition::a() const
 {
 	return m_a;
@@ -198,6 +212,7 @@ Transition * Transition::clone() const
 	clone->m_bAlign = m_bAlign;
 	clone->m_subtractBeingTemperature = m_subtractBeingTemperature;
 	clone->m_subtractEndTemperature = m_subtractEndTemperature;
+	clone->m_subtractCustomTemperature = m_subtractCustomTemperature;
 	clone->m_a = m_a;
 	clone->m_b = m_b;
 	clone->m_t = m_t;
@@ -219,6 +234,7 @@ void Transition::copy(Transition * other)
 	setBAlign(other->m_bAlign);
 	setSubtractBeginTemperature(other->m_subtractBeingTemperature);
 	setSubtractEndTemperature(other->m_subtractEndTemperature);
+	setSubtractCustomTemperature(other->m_subtractCustomTemperature);
 	m_a = other->m_a;
 	emit aChanged();
 	m_b = other->m_b;
@@ -289,6 +305,7 @@ void Transition::update()
 			m_t[i] += temperatureBegin();
 		if (subtractEndTemperature())
 			m_t[i] += temperatureEnd();
+		m_t[i] += subtractCustomTemperature();
 		m_cp[i] *= m_a;
 	}
 
@@ -315,6 +332,7 @@ void Transition::connectUpdateSignals()
 	connect(this, & Transition::bAlignChanged, this, & Transition::update);
 	connect(this, & Transition::subtractBeginTemperatureChanged, this, & Transition::update);
 	connect(this, & Transition::subtractEndTemperatureChanged, this, & Transition::update);
+	connect(this, & Transition::subtractCustomTemperatureChanged, this, & Transition::update);
 }
 
 void Transition::disconnectUpdateSignals()
@@ -339,5 +357,6 @@ qreal Transition::getSubtractedTemperature(qreal t) const
 		t -= temperatureBegin();
 	if (subtractEndTemperature())
 		t -= temperatureEnd();
+	t -= subtractCustomTemperature();
 	return t;
 }

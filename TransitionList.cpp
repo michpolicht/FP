@@ -85,6 +85,17 @@ void TransitionList::remove(int index)
 	endRemoveRows();
 }
 
+void TransitionList::removeAll()
+{
+	if (m_list.count() == 0)
+		return;
+
+	beginRemoveRows(QModelIndex(), 0, m_list.count() - 1);
+	while (!m_list.isEmpty())
+		delete m_list.takeFirst();
+	endRemoveRows();
+}
+
 void TransitionList::dataChangedFromTransition(QObject * transition)
 {
 	int index = m_list.indexOf(static_cast<Transition * >(transition));

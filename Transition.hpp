@@ -23,6 +23,7 @@ class Transition:
 		Q_PROPERTY(bool bAlign READ bAlign WRITE setBAlign NOTIFY bAlignChanged)
 		Q_PROPERTY(bool subtractBeginTemperature READ subtractBeginTemperature WRITE setSubtractBeginTemperature NOTIFY subtractBeginTemperatureChanged)
 		Q_PROPERTY(bool subtractEndTemperature READ subtractEndTemperature WRITE setSubtractEndTemperature NOTIFY subtractEndTemperatureChanged)
+		Q_PROPERTY(qreal subtractCustomTemperature READ subtractCustomTemperature WRITE setSubtractCustomTemperature NOTIFY subtractCustomTemperatureChanged)
 		Q_PROPERTY(qreal a READ a WRITE setA NOTIFY aChanged)
 		Q_PROPERTY(qreal b READ b WRITE setB NOTIFY bChanged)
 		Q_PROPERTY(QList<qreal> * t READ t NOTIFY cpTChanged)
@@ -65,6 +66,10 @@ class Transition:
 		bool subtractEndTemperature() const;
 
 		void setSubtractEndTemperature(bool flag);
+
+		qreal subtractCustomTemperature() const;
+
+		void setSubtractCustomTemperature(qreal temperature);
 
 		void setBAlign(bool bAlign);
 
@@ -118,6 +123,8 @@ class Transition:
 
 		void subtractEndTemperatureChanged();
 
+		void subtractCustomTemperatureChanged();
+
 		void aChanged();
 
 		void bChanged();
@@ -143,6 +150,7 @@ class Transition:
 		bool m_bAlign;
 		bool m_subtractBeingTemperature;
 		bool m_subtractEndTemperature;
+		qreal m_subtractCustomTemperature;
 		qreal m_a;
 		qreal m_b;
 		QList<qreal> m_t;

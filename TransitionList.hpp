@@ -31,6 +31,8 @@ class TransitionList:
 
 		Q_INVOKABLE void remove(int index);
 
+		Q_INVOKABLE void removeAll();
+
 	protected slots:
 		void dataChangedFromTransition(QObject * transition);
 

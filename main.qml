@@ -4,17 +4,17 @@ import QtQuick.Layouts 1.1
 import QtQuick.Dialogs 1.2
 import QtCharts 2.2
 
-import FP 1.0
+import FP 1.0 as FP
 
 /**
   @todo H0.
   */
 ApplicationWindow {
-    id: appWindow
+	id: appWindow
 
-    visible: true
+	visible: true
 	width: 1280
-    height: 768
+	height: 768
 	title: qsTr("FP Projekt")
 
 	property var transitionList: model.transitionList
@@ -64,19 +64,19 @@ ApplicationWindow {
 			}
 
 			Button {
-				text: qsTr("Odświerz")
+				text: qsTr("Odśwież")
 				onClicked: model.parseCSV()
 			}
 		}
 	}
 
-    Model {
-        id: model
+	FP.Model {
+		id: model
 
-		source: "../FP1/data/entalpia.csv"
-//		source: "../FP1/data/test2.txt"
-		Component.onCompleted: model.parseCSV()	// remove if source empty
-    }
+//		source: "../FP1/data/entalpia.csv"
+		//		source: "../FP1/data/test2.txt"
+//		Component.onCompleted: model.parseCSV()	// remove if source empty
+	}
 
 	MouseArea {
 		id: mouseArea
@@ -112,137 +112,178 @@ ApplicationWindow {
 	}
 
 	RowLayout {
-        anchors.fill: parent
-        anchors.margins: 20
-        spacing: 5
+		anchors.fill: parent
+		anchors.margins: 20
+		spacing: 5
 
-        ColumnLayout
-        {
-            Layout.fillHeight: true
+		ColumnLayout
+		{
+			Layout.fillHeight: true
 
-            ListView {
+			ListView {
 				id: transitionListView
 
-                Layout.fillHeight: true
+				Layout.fillHeight: true
 				implicitWidth: listViewItemWidth * 1 + addTransitionButton.width * 2 + listViewItemSpacing * 5
-                clip: true
+				clip: true
 
 				model: transitionList
 				delegate: transitionListDelegate
 				spacing: listViewItemSpacing
 
-//				headerPositioning: ListView.OverlayHeader
-                header: Row {
+				//				headerPositioning: ListView.OverlayHeader
+				header: Row {
 					spacing: listViewItemSpacing
 					bottomPadding: 20
 
 					Label { width: listViewItemWidth; text: qsTr("Nazwa") }
 					Label { width: listViewItemWidth; text: qsTr("Operacje") }
-                }
-            }
+				}
 
-            Button
-            {
-                id: addTransitionButton
+				displaced: Transition {
+					NumberAnimation { properties: "x,y"; duration: 100}
+				}
 
-                text: "Dodaj przemianę..."
-				onClicked: transitionList.append()
-            }
-        }
+				add: Transition {
+					NumberAnimation { property: "scale"; from: 0; to: 1.0; duration: 100 }
+				}
 
-        ColumnLayout {
-            spacing: 5
+				remove: Transition {
+					NumberAnimation { property: "scale"; from: 1.0; to: 0.0; duration: 100 }
+				}
+			}
 
-            Label {
-                Layout.alignment: Qt.AlignHCenter
+			Row {
+				spacing: 5
+				Button {
+					id: addTransitionButton
+
+					text: "Dodaj przemianę"
+					onClicked: transitionList.append()
+				}
+
+				Button {
+					text: "Usuń wszystkie"
+					onClicked: transitionList.removeAll()
+				}
+			}
+		}
+
+		ColumnLayout {
+			spacing: 5
+
+			Label {
+				Layout.alignment: Qt.AlignHCenter
 
 				text: "ΔH [" + enthalpyUnit + "]: " + model.integral
-                font.pixelSize: 18
-            }
+				font.pixelSize: 18
+			}
 
-            TCpChart {
+			TCpChart {
 				id: tCpChart
 
-                Layout.fillHeight: true
-                Layout.fillWidth: true
+				Layout.fillHeight: true
+				Layout.fillWidth: true
 
-                implicitWidth: 400
-                implicitHeight: 400
+				implicitWidth: 400
+				implicitHeight: 400
 
-                model: model
-                label: model.source
+				model: model
+				label: model.source
 				temperatureUnit: appWindow.temperatureUnit
 				enthalpyUnit: appWindow.enthalpyUnit
 				minT: tSlider.first.value
 				maxT: tSlider.second.value
-            }
 
-            RowLayout
-            {
-                spacing: 5
+				Connections {
+					target: transitionList
+					onRowsInserted: tCpChart.updateCumulativeSeries()
+					onRowsRemoved: tCpChart.updateCumulativeSeries()
+				}
+			}
 
-                Label
-                {
-                    Layout.alignment: Qt.AlignVCenter
-                    text: "Przedział całkowania:"
-                }
+			RowLayout
+			{
+				spacing: 5
 
-                TextField
-                {
-                    implicitWidth: 60
-                    text: Math.round(tSlider.first.value * 10) / 10
-                    focus: true
-                    validator: DoubleValidator { bottom: tSlider.from; top: tSlider.second.value }
+				Label
+				{
+					Layout.alignment: Qt.AlignVCenter
+					text: "Bazowa entalpia [" + enthalpyUnit + "]:"
+				}
 
-                    onAccepted: tSlider.first.value = Number.fromLocaleString(Qt.locale(), text)
-                }
+				TextField
+				{
+					implicitWidth: 60
+					text: model.baseEnthalpy
+					focus: true
+					validator: DoubleValidator { bottom: 0.0 }
 
-                RangeSlider
-                {
-                    id: tSlider
+					onEditingFinished: model.baseEnthalpy = Number.fromLocaleString(Qt.locale(), text)
+				}
 
-                    from: model.minT
-                    to: model.maxT
+				Label
+				{
+					Layout.alignment: Qt.AlignVCenter
+					text: "Przedział całkowania:"
+				}
 
-                    onFromChanged: first.value = from
-                    onToChanged: second.value = to
-                }
+				TextField
+				{
+					implicitWidth: 60
+					text: Math.round(tSlider.first.value * 10) / 10
+					focus: true
+					validator: DoubleValidator { bottom: tSlider.from; top: tSlider.second.value }
 
-                TextField
-                {
-                    implicitWidth: 60
-                    text: Math.round(tSlider.second.value * 10) / 10
-                    focus: true
-                    validator: DoubleValidator { bottom: tSlider.first.value; top: tSlider.to }
+					onAccepted: tSlider.first.value = Number.fromLocaleString(Qt.locale(), text)
+				}
 
-                    onAccepted: tSlider.second.value = Number.fromLocaleString(Qt.locale(), text)
-                }
+				RangeSlider
+				{
+					id: tSlider
 
-                Button {
-                    text: "Całkuj"
-                    onClicked: model.integrate(tSlider.first.value, tSlider.second.value)
-                }
-            }
-        }
-    }
+					from: model.minT
+					to: model.maxT
 
-    FileDialog {
-        id: fileDialog
+					onFromChanged: first.value = from
+					onToChanged: second.value = to
+				}
 
-        title: "Please choose a file"
-        folder: shortcuts.home
+				TextField
+				{
+					implicitWidth: 60
+					text: Math.round(tSlider.second.value * 10) / 10
+					focus: true
+					validator: DoubleValidator { bottom: tSlider.first.value; top: tSlider.to }
+
+					onAccepted: tSlider.second.value = Number.fromLocaleString(Qt.locale(), text)
+				}
+
+				Button {
+					text: "Całkuj"
+					onClicked: model.integrate(tSlider.first.value, tSlider.second.value)
+				}
+			}
+		}
+	}
+
+	FileDialog {
+		id: fileDialog
+
+		title: "Please choose a file"
+		folder: shortcuts.home
 
 		onAccepted: {
 			model.setSourceAsUrl(fileDialog.fileUrl)
 			model.parseCSV()
 		}
 
-        onRejected: console.log("Canceled")
-    }
+		onRejected: console.log("Canceled")
+	}
 
 	function createTransitionDialog(index)
-    {
-        var component = Qt.createComponent("TransitionDialog.qml");
+	{
+		var component = Qt.createComponent("TransitionDialog.qml");
 		var dialog = component.createObject(appWindow, {"parent": appWindow,
 												"x": mouseArea.mouseX,
 												"y": mouseArea.mouseY,
@@ -254,5 +295,5 @@ ApplicationWindow {
 											});
 		dialog.accepted.connect(tCpChart.updateCumulativeSeries)
 		dialog.open()
-    }
+	}
 }
